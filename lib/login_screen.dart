@@ -1,25 +1,68 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:myapp/home_screen.dart';
-import 'package:myapp/signup_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'home_screen.dart';
+import 'lupa_sandi.dart';
+import 'signup_screen.dart';
 
 class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  Future<void> loginUser(BuildContext context) async {
+    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Mohon masukkan email dan password")),
+      );
+      return;
+    }
+
+    try {
+      // Attempt to sign in the user with Firebase
+      final UserCredential userCredential =
+          await _auth.signInWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      // Show success message and navigate to HomeScreen
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Berhasil Masuk")),
+      );
+      if (userCredential.user != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomeScreen()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String message;
+      if (e.code == 'user-not-found') {
+        message = "No user found for that email.";
+      } else if (e.code == 'wrong-password') {
+        message = "Wrong password provided for that user.";
+      } else {
+        message = e.message ?? 'Login failed';
+      }
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    } catch (e) {
+      // Handle any other errors
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An unexpected error occurred')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Use ValueNotifier to handle passToggle state
     final ValueNotifier<bool> passToggle = ValueNotifier<bool>(true);
-
-    return Material(
-      color: Colors.white,
-      child: SingleChildScrollView(
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SingleChildScrollView(
         child: SafeArea(
           child: Column(
             children: [
               SizedBox(height: 50),
-              // Text widgets added before the image
               Text(
                 "Selamat Datang",
                 style: TextStyle(
@@ -31,7 +74,6 @@ class LoginScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 5),
-              // Text widgets added before the image
               Text(
                 "Masuk",
                 style: TextStyle(
@@ -47,21 +89,19 @@ class LoginScreen extends StatelessWidget {
                 padding: EdgeInsets.all(5),
                 child: Image.asset(
                   "images/welcome.png",
-                  width: 100, // Set desired width
-                  height: 100, // Set desired height
-                  fit: BoxFit.cover, // Adjust image fit as needed
+                  width: 100,
+                  height: 100,
+                  fit: BoxFit.cover,
                 ),
               ),
               SizedBox(height: 5),
               Padding(
                 padding: EdgeInsets.all(12),
                 child: TextField(
+                  controller: emailController,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
-                    label: Text(
-                      "Email",
-                      selectionColor: Color.fromARGB(43, 68, 63, 144),
-                    ),
+                    label: Text("Email"),
                   ),
                 ),
               ),
@@ -71,29 +111,24 @@ class LoginScreen extends StatelessWidget {
                   valueListenable: passToggle,
                   builder: (context, value, child) {
                     return TextField(
+                      controller: passwordController,
                       obscureText: value,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(),
-                        label: Text(
-                          "Password",
-                          selectionColor: Color.fromARGB(43, 68, 63, 144),
-                        ),
+                        label: Text("Password"),
                         suffixIcon: InkWell(
                           onTap: () {
                             passToggle.value = !passToggle.value;
                           },
                           child: Icon(
-                              value
-                                  ? CupertinoIcons.eye_slash_fill
-                                  : CupertinoIcons.eye_fill,
-                              color: Color.fromARGB(43, 68, 63, 144)),
+                            value ? Icons.visibility_off : Icons.visibility,
+                          ),
                         ),
                       ),
                     );
                   },
                 ),
               ),
-              // Adding "Lupa Kata Sandi?" text to the right of the password field
               Padding(
                 padding: const EdgeInsets.only(right: 12, top: 1),
                 child: Row(
@@ -101,7 +136,11 @@ class LoginScreen extends StatelessWidget {
                   children: [
                     TextButton(
                       onPressed: () {
-                        // Add your password recovery logic here
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => LupaSandiScreen()),
+                        );
                       },
                       child: Text(
                         "Lupa Kata Sandi?",
@@ -113,8 +152,6 @@ class LoginScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(height: 0),
-              //box masuk
               Padding(
                 padding: const EdgeInsets.all(10),
                 child: SizedBox(
@@ -123,13 +160,7 @@ class LoginScreen extends StatelessWidget {
                     color: Color.fromARGB(255, 68, 63, 144),
                     borderRadius: BorderRadius.circular(10),
                     child: InkWell(
-                      onTap: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => HomeScreen()));
-                        // Add your navigation logic here
-                      },
+                      onTap: () => loginUser(context),
                       child: Padding(
                         padding:
                             EdgeInsets.symmetric(vertical: 15, horizontal: 50),
@@ -149,7 +180,6 @@ class LoginScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 5),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -163,10 +193,9 @@ class LoginScreen extends StatelessWidget {
                   TextButton(
                     onPressed: () {
                       Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => SignupScreen()));
-                      // Add your sign-up navigation logic here
+                        context,
+                        MaterialPageRoute(builder: (context) => SignupScreen()),
+                      );
                     },
                     child: Text(
                       "Daftar",

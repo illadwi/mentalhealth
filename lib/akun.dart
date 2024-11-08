@@ -1,7 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/setting.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class AkunScreen extends StatelessWidget {
+class AkunScreen extends StatefulWidget {
+  @override
+  _AkunScreenState createState() => _AkunScreenState();
+}
+
+class _AkunScreenState extends State<AkunScreen> {
+  final TextEditingController namaController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  bool isPasswordVisible = false;
+
+  Future<void> _fetchUserData() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+      if (userDoc.exists) {
+        final data = userDoc.data() as Map<String, dynamic>;
+        namaController.text = data['username'] ?? '';
+        emailController.text = data['email'] ?? '';
+        passwordController.text = data['password'] ?? '';
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -12,10 +46,6 @@ class AkunScreen extends StatelessWidget {
             width: double.infinity,
             constraints: BoxConstraints(maxWidth: 400),
             padding: EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.white),
-              borderRadius: BorderRadius.circular(8.0),
-            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -47,26 +77,19 @@ class AkunScreen extends StatelessWidget {
                   ],
                 ),
                 SizedBox(height: 24),
-                _buildTextField('Nama', 'Benaya', false),
-                _buildTextField('Email', 'benaya@mail.com', false),
-                _buildTextField('Kata Sandi', 'benaya123456', true),
+                _buildTextField('Nama', namaController, false),
+                _buildTextField('Email', emailController, false),
+                _buildTextField('Password', passwordController, true),
                 SizedBox(height: 20),
                 Center(
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SettingScreen(),
-                        ),
-                      );
-                    },
+                    onPressed: () => _updateUserData(context),
                     child: Text(
                       'Simpan',
-                      style: TextStyle(color: Colors.white), // Text color white
+                      style: TextStyle(color: Colors.white),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color.fromARGB(255, 68, 63, 144), // Button color
+                      backgroundColor: Color.fromARGB(255, 68, 63, 144),
                       padding:
                           EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                       textStyle:
@@ -82,7 +105,8 @@ class AkunScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(String label, String initialValue, bool isPassword) {
+  Widget _buildTextField(
+      String label, TextEditingController controller, bool isPassword) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
@@ -97,16 +121,54 @@ class AkunScreen extends StatelessWidget {
           ),
           SizedBox(height: 8),
           TextField(
-            obscureText: isPassword,
+            obscureText: isPassword && !isPasswordVisible,
+            controller: controller,
             decoration: InputDecoration(
               border: OutlineInputBorder(),
               contentPadding:
                   EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+              suffixIcon: isPassword
+                  ? IconButton(
+                      icon: Icon(
+                        isPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          isPasswordVisible = !isPasswordVisible;
+                        });
+                      },
+                    )
+                  : null,
             ),
-            controller: TextEditingController(text: initialValue),
           ),
         ],
       ),
     );
+  }
+
+  void _updateUserData(BuildContext context) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (userId != null) {
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'username': namaController.text,
+        'email': emailController.text,
+        'password': passwordController.text, // Enkripsi password di database
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Data berhasil disimpan')),
+      );
+
+      Future.delayed(Duration(seconds: 1), () {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => SettingScreen()),
+          (Route<dynamic> route) => false,
+        );
+      });
+    }
   }
 }

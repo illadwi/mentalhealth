@@ -1,25 +1,72 @@
-import 'package:flutter/cupertino.dart';
+
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:myapp/home_screen.dart';
 import 'package:myapp/login_screen.dart';
 
 class SignupScreen extends StatelessWidget {
   const SignupScreen({super.key});
 
+  Future<void> signup(
+      BuildContext context, String email, String password) async {
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      // Save user data to Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user?.uid)
+          .set({
+        'email': email,
+        'createdAt': DateTime.now(),
+      });
+
+      // Show success popup
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text("Selamat"),
+          content: Text("Anda berhasil mendaftar!"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the dialog
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => HomeScreen()),
+                );
+              },
+              child: Text("OK"),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      // Show error if signup fails
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error saat signup: $e")),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Use ValueNotifier to handle passToggle states
     final ValueNotifier<bool> passToggle = ValueNotifier<bool>(true);
     final ValueNotifier<bool> confirmPassToggle = ValueNotifier<bool>(true);
+    final TextEditingController emailController = TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
+    final TextEditingController confirmPasswordController =
+        TextEditingController();
 
-    return Material(
-      color: Colors.white,
-      child: SingleChildScrollView(
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SingleChildScrollView(
         child: SafeArea(
           child: Column(
             children: [
-              SizedBox(height: 15),
-              // Text widgets added before the image
+              SizedBox(height: 50),
               Text(
                 "Selamat Datang",
                 style: TextStyle(
@@ -31,7 +78,6 @@ class SignupScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 5),
-              // Text widgets added before the image
               Text(
                 "Daftar",
                 style: TextStyle(
@@ -47,22 +93,21 @@ class SignupScreen extends StatelessWidget {
                 padding: EdgeInsets.all(5),
                 child: Image.asset(
                   "images/welcome.png",
-                  width: 100, // Set desired width
-                  height: 100, // Set desired height
-                  fit: BoxFit.cover, // Adjust image fit as needed
+                  width: 100,
+                  height: 100,
+                  fit: BoxFit.cover,
                 ),
               ),
               SizedBox(height: 5),
               Padding(
                 padding: EdgeInsets.all(12),
                 child: TextField(
+                  controller: emailController,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
-                    label: Text(
-                      "Email",
-                      selectionColor: Color.fromARGB(43, 68, 63, 144),
-                    ),
+                    label: Text("Email"),
                   ),
+                  keyboardType: TextInputType.emailAddress,
                 ),
               ),
               Padding(
@@ -71,22 +116,19 @@ class SignupScreen extends StatelessWidget {
                   valueListenable: passToggle,
                   builder: (context, value, child) {
                     return TextField(
+                      controller: passwordController,
                       obscureText: value,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(),
-                        label: Text(
-                          "Password",
-                          selectionColor: Color.fromARGB(43, 68, 63, 144),
-                        ),
+                        label: Text("Password"),
                         suffixIcon: InkWell(
                           onTap: () {
                             passToggle.value = !passToggle.value;
                           },
                           child: Icon(
                             value
-                                ? CupertinoIcons.eye_slash_fill
-                                : CupertinoIcons.eye_fill,
-                            color: Color.fromARGB(43, 68, 63, 144),
+                                ? Icons.visibility
+                                : Icons.visibility_off,
                           ),
                         ),
                       ),
@@ -94,13 +136,13 @@ class SignupScreen extends StatelessWidget {
                   },
                 ),
               ),
-              SizedBox(height: 1),
               Padding(
                 padding: EdgeInsets.all(12),
                 child: ValueListenableBuilder(
                   valueListenable: confirmPassToggle,
                   builder: (context, value, child) {
                     return TextField(
+                      controller: confirmPasswordController,
                       obscureText: value,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(),
@@ -111,8 +153,8 @@ class SignupScreen extends StatelessWidget {
                           },
                           child: Icon(
                             value
-                                ? CupertinoIcons.eye_slash_fill
-                                : CupertinoIcons.eye_fill,
+                                ? Icons.visibility_off
+                                : Icons.visibility,
                           ),
                         ),
                       ),
@@ -120,29 +162,6 @@ class SignupScreen extends StatelessWidget {
                   },
                 ),
               ),
-
-              // Adding "Lupa Kata Sandi?" text to the right of the password field
-
-              Padding(
-                padding: const EdgeInsets.only(right: 4, top: 0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        // Add your password recovery logic here
-                      },
-                      child: Text(
-                        "Lupa Kata Sandi?",
-                        style: TextStyle(
-                          color: Color.fromARGB(255, 68, 63, 144),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 0),
               Padding(
                 padding: const EdgeInsets.all(10),
                 child: SizedBox(
@@ -152,11 +171,28 @@ class SignupScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                     child: InkWell(
                       onTap: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => HomeScreen()));
-                        // Add your navigation logic here
+                        if (emailController.text.isEmpty ||
+                            passwordController.text.isEmpty ||
+                            confirmPasswordController.text.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Semua field harus diisi")),
+                          );
+                        } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                            .hasMatch(emailController.text)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Email tidak valid")),
+                          );
+                        } else if (passwordController.text !=
+                            confirmPasswordController.text) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text(
+                                    "Password dan konfirmasi password tidak cocok")),
+                          );
+                        } else {
+                          signup(context, emailController.text,
+                              passwordController.text);
+                        }
                       },
                       child: Padding(
                         padding:
@@ -175,7 +211,6 @@ class SignupScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(height: 1),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -192,7 +227,6 @@ class SignupScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                               builder: (context) => LoginScreen()));
-                      // Add your sign-up navigation logic here
                     },
                     child: Text(
                       "Masuk",

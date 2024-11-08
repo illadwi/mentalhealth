@@ -1,3 +1,17 @@
+buildscript {
+    ext.kotlin_version = '1.8.0' // atau versi yang lebih tinggi seperti '1.8.22'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.android.tools.build:gradle:7.2.0' // Pastikan juga kompatibel dengan versi ini
+    }
+}
+
+
+
 allprojects {
     repositories {
         google()

@@ -4,9 +4,33 @@ import 'package:myapp/riwayat_kuisioner.dart';
 import 'package:myapp/setting.dart';
 
 class HasilKuisionerScreen extends StatelessWidget {
+  final int totalScore;
+
+  HasilKuisionerScreen({required this.totalScore});
+
+  String getDepressionLevelMessage() {
+    if (totalScore >= 20) {
+      return 'Tingkat Depresi anda tergolong sangat berat, segera konsultasikan ke tenaga ahli.';
+    } else if (totalScore >= 15) {
+      return 'Tingkat Depresi anda tergolong berat, disarankan untuk mencari bantuan profesional.';
+    } else if (totalScore >= 10) {
+      return 'Tingkat Depresi anda tergolong sedang, pertimbangkan untuk melakukan konseling.';
+    } else if (totalScore >= 5) {
+      return 'Tingkat Depresi anda tergolong ringan, buka Tips Managemen Stres untuk mendapatkan informasi penanganan.';
+    } else {
+      return 'Depresi minimal, tetap jaga kesehatan mental dan lakukan kegiatan positif.';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text('Hasil Kuisioner'),
+        backgroundColor: Colors.white,
+        iconTheme: IconThemeData(color: Color.fromARGB(255, 68, 63, 144)),
+      ),
       body: Center(
         child: Container(
           decoration: BoxDecoration(
@@ -17,39 +41,9 @@ class HasilKuisionerScreen extends StatelessWidget {
           constraints: BoxConstraints(maxWidth: 400),
           padding: EdgeInsets.all(16.0),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with back button
-              Padding(
-                padding:
-                    const EdgeInsets.only(top: 16.0), // Add padding at the top
-                child: Row(
-                  children: [
-                    // Back button with Navigator
-                    IconButton(
-                      icon: Icon(Icons.arrow_back, size: 24),
-                      color: Color.fromARGB(255, 68, 63, 144),
-                      onPressed: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => HomeScreen()));
-                      },
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Hasil Kuesioner',
-                      style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color.fromARGB(255, 68, 63, 144)),
-                    ),
-                  ],
-                ),
-              ),
-
-              SizedBox(height: 16),
-              // Centered Result Title
               Center(
                 child: Column(
                   children: [
@@ -57,9 +51,9 @@ class HasilKuisionerScreen extends StatelessWidget {
                       'Hasil Kuesioner Depresi',
                       style: TextStyle(fontSize: 18),
                     ),
-                    SizedBox(height: 4), // Optional spacing
+                    SizedBox(height: 4),
                     Text(
-                      'Ini adalah hasil yang anda dapatkan',
+                      'Total Skor Anda: $totalScore',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 16),
                     ),
@@ -71,7 +65,7 @@ class HasilKuisionerScreen extends StatelessWidget {
               Expanded(
                 child: ListView(
                   children: [
-                    _buildResultItem('Depresi sangat Berat', '20-27'),
+                    _buildResultItem('Depresi sangat Berat', '20-30'),
                     _buildDivider(),
                     _buildResultItem('Depresi Berat', '15-19'),
                     _buildDivider(),
@@ -84,11 +78,11 @@ class HasilKuisionerScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              // Message
+              // Message based on score
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Text(
-                  'Tingkat Depresi anda tergolong ringan, buka Tips Managemen Stres untuk mendapatkan Informasi Penanganan.',
+                  getDepressionLevelMessage(),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -100,7 +94,6 @@ class HasilKuisionerScreen extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                             builder: (context) => RiwayatKuisionerScreen()));
-                    // Add your finish functionality here
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Color.fromARGB(255, 68, 63, 144),
@@ -115,7 +108,7 @@ class HasilKuisionerScreen extends StatelessWidget {
       ),
       bottomNavigationBar: BottomAppBar(
         child: SizedBox(
-          height: 50, // Reduce the height of the BottomAppBar
+          height: 50,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -123,22 +116,22 @@ class HasilKuisionerScreen extends StatelessWidget {
                 icon: Icon(
                   Icons.home,
                   size: 24,
-                  color: Color.fromARGB(43, 68, 63, 144),
-                ), // Adjust icon size
+                  color: Color.fromARGB(255, 68, 63, 144),
+                ),
                 onPressed: () {
                   Navigator.push(context,
                       MaterialPageRoute(builder: (context) => HomeScreen()));
-                  // Add your home button functionality here
                 },
               ),
               IconButton(
-                icon: Icon(Icons.settings,
-                    size: 24,
-                    color: Color.fromARGB(43, 68, 63, 144)), // Adjust icon size
+                icon: Icon(
+                  Icons.settings,
+                  size: 24,
+                  color: Color.fromARGB(255, 68, 63, 144),
+                ),
                 onPressed: () {
                   Navigator.push(context,
                       MaterialPageRoute(builder: (context) => SettingScreen()));
-                  // Add your settings button functionality here
                 },
               ),
             ],
